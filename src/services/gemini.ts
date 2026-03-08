@@ -18,7 +18,7 @@ if (!key && typeof window !== 'undefined') {
 }
 
 // Most SDKs like @google/generative-ai and similar use either a string or an object with apiKey
-const ai = new GoogleGenAI(key);
+const ai = new GoogleGenAI({ apiKey: key });
 
 export interface VectoPayload {
   inputType: 'manual' | 'pdf' | 'url';

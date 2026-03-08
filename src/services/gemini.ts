@@ -1,6 +1,24 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+const getApiKey = () => {
+  // Try all possible locations for the key
+  return import.meta.env.VITE_GEMINI_API_KEY ||
+    (typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || (process.env as any).VITE_GEMINI_API_KEY) : "") ||
+    (globalThis as any).GEMINI_API_KEY ||
+    "";
+};
+
+const key = getApiKey();
+
+if (!key && typeof window !== 'undefined') {
+  console.error("Vecto Deployment Error: No API Key found.\n" +
+    "1. Go to Vercel Settings -> Environment Variables.\n" +
+    "2. Add 'VITE_GEMINI_API_KEY' with your Google AI API key.\n" +
+    "3. IMPORTANT: You must trigger a NEW DEPLOYMENT (Build) for this to take effect.");
+}
+
+// Most SDKs like @google/generative-ai and similar use either a string or an object with apiKey
+const ai = new GoogleGenAI(key);
 
 export interface VectoPayload {
   inputType: 'manual' | 'pdf' | 'url';

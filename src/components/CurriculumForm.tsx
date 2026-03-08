@@ -1,6 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Play, Sparkles, Activity, Database, Globe, UploadCloud, Link as LinkIcon, FileText, X } from 'lucide-react';
+import { Play, Sparkles, Activity, Database, Globe, UploadCloud, Link as LinkIcon, FileText, X, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { VectoPayload } from '../services/gemini';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface CurriculumFormProps {
   onAnalyze: (payload: VectoPayload) => void;
@@ -53,12 +60,12 @@ type InputType = 'manual' | 'pdf' | 'url';
 
 export default function CurriculumForm({ onAnalyze, loading }: CurriculumFormProps) {
   const [inputType, setInputType] = useState<InputType>('manual');
-  
+
   // Manual State
   const [courseTitle, setCourseTitle] = useState(PRESETS[0].legacy.course_title);
   const [lastUpdated, setLastUpdated] = useState(PRESETS[0].legacy.last_updated);
   const [coreCompetencies, setCoreCompetencies] = useState(PRESETS[0].legacy.core_competencies);
-  
+
   // PDF State
   const [isDragging, setIsDragging] = useState(false);
   const [pdfFile, setPdfFile] = useState<{ file: File, base64: string } | null>(null);
@@ -121,7 +128,7 @@ export default function CurriculumForm({ onAnalyze, loading }: CurriculumFormPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const marketSignals = {
       trending_skills: trendingSkills.split(',').map(s => s.trim()),
       salary_growth: salaryGrowth,
@@ -155,15 +162,22 @@ export default function CurriculumForm({ onAnalyze, loading }: CurriculumFormPro
     onAnalyze(payload);
   };
 
+  const inputAnimation = {
+    initial: { opacity: 0, scale: 0.98, filter: 'blur(2px)' },
+    animate: { opacity: 1, scale: 1, filter: 'blur(0px)' },
+    exit: { opacity: 0, scale: 0.98, filter: 'blur(2px)' },
+    transition: { duration: 0.2 }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
         {PRESETS.map((preset, idx) => (
           <button
             key={idx}
             type="button"
             onClick={() => handlePreset(preset)}
-            className="whitespace-nowrap px-3 py-1.5 rounded-full border border-neutral-200 text-xs font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+            className="whitespace-nowrap px-3 py-1.5 rounded-full border border-neutral-200 text-xs font-semibold text-neutral-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all shadow-sm"
           >
             Load: {preset.name}
           </button>
@@ -172,184 +186,211 @@ export default function CurriculumForm({ onAnalyze, loading }: CurriculumFormPro
 
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
-          <h3 className="text-sm font-semibold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
-            <Database size={14} className="text-neutral-500" />
+          <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-2">
+            <Database size={14} className="text-emerald-600" />
             Legacy Curriculum Input
           </h3>
         </div>
 
         {/* Input Type Tabs */}
-        <div className="flex p-1 bg-neutral-100 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setInputType('manual')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-md transition-all ${inputType === 'manual' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-          >
-            <FileText size={14} /> Paste / Manual
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputType('pdf')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-md transition-all ${inputType === 'pdf' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-          >
-            <UploadCloud size={14} /> Upload PDF
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputType('url')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-md transition-all ${inputType === 'url' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-          >
-            <LinkIcon size={14} /> Website URL
-          </button>
+        <div className="flex p-1 bg-neutral-100/80 backdrop-blur-sm rounded-xl border border-neutral-200/50 relative">
+          {[
+            { id: 'manual', icon: FileText, label: 'Paste / Manual' },
+            { id: 'pdf', icon: UploadCloud, label: 'Upload PDF' },
+            { id: 'url', icon: LinkIcon, label: 'Website URL' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setInputType(tab.id as InputType)}
+              className={cn(
+                "relative flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition-all z-10",
+                inputType === tab.id ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50"
+              )}
+            >
+              {inputType === tab.id && (
+                <motion.div
+                  layoutId="inputTypeIndicator"
+                  className="absolute inset-0 bg-white rounded-lg shadow-sm border border-neutral-200/50"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <tab.icon size={14} className={inputType === tab.id ? "text-emerald-600" : ""} /> {tab.label}
+              </span>
+            </button>
+          ))}
         </div>
-        
-        {/* Manual Input */}
-        {inputType === 'manual' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700">Course Title</label>
-                <input 
-                  type="text" 
-                  value={courseTitle}
-                  onChange={e => setCourseTitle(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  required={inputType === 'manual'}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-700">Last Updated</label>
-                <input 
-                  type="text" 
-                  value={lastUpdated}
-                  onChange={e => setLastUpdated(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  required={inputType === 'manual'}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-700">Core Competencies (or Paste Full Syllabus)</label>
-              <textarea 
-                value={coreCompetencies}
-                onChange={e => setCoreCompetencies(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all min-h-[120px]"
-                required={inputType === 'manual'}
-                placeholder="Paste the course curriculum or list competencies here..."
-              />
-            </div>
-          </div>
-        )}
 
-        {/* PDF Upload */}
-        {inputType === 'pdf' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {!pdfFile ? (
-              <div 
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-50' : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'}`}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  accept="application/pdf" 
-                  className="hidden" 
-                />
-                <UploadCloud size={32} className={`mx-auto mb-3 ${isDragging ? 'text-emerald-500' : 'text-neutral-400'}`} />
-                <p className="text-sm font-medium text-neutral-700">Drag & drop a PDF curriculum here</p>
-                <p className="text-xs text-neutral-500 mt-1">or click to browse files</p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <FileText size={20} />
+        {/* Dynamic Inputs Container */}
+        <div className="min-h-[220px]">
+          <AnimatePresence mode="wait">
+            {/* Manual Input */}
+            {inputType === 'manual' && (
+              <motion.div key="manual" {...inputAnimation} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-neutral-700 ml-1">Course Title</label>
+                    <input
+                      type="text"
+                      value={courseTitle}
+                      onChange={e => setCourseTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-800"
+                      required={inputType === 'manual'}
+                    />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900 line-clamp-1">{pdfFile.file.name}</p>
-                    <p className="text-xs text-neutral-500">{(pdfFile.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-neutral-700 ml-1">Last Updated</label>
+                    <input
+                      type="text"
+                      value={lastUpdated}
+                      onChange={e => setLastUpdated(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-800"
+                      required={inputType === 'manual'}
+                    />
                   </div>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => setPdfFile(null)}
-                  className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* URL Input */}
-        {inputType === 'url' && (
-          <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <label className="text-xs font-medium text-neutral-700">Course Website URL</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LinkIcon size={16} className="text-neutral-400" />
-              </div>
-              <input 
-                type="url" 
-                value={urlData}
-                onChange={e => setUrlData(e.target.value)}
-                placeholder="https://example-university.edu/course-syllabus"
-                className="w-full pl-10 pr-3 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                required={inputType === 'url'}
-              />
-            </div>
-            <p className="text-xs text-neutral-500 mt-2">
-              Vecto will use Gemini's URL Context tool to read the curriculum directly from the website.
-            </p>
-          </div>
-        )}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-neutral-700 ml-1 flex items-center justify-between">
+                    <span>Core Competencies</span>
+                    <span className="text-neutral-400 font-normal flex items-center gap-1"><Info size={12} /> Comma separated</span>
+                  </label>
+                  <textarea
+                    value={coreCompetencies}
+                    onChange={e => setCoreCompetencies(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all min-h-[120px] font-medium text-neutral-800 leading-relaxed custom-scrollbar"
+                    required={inputType === 'manual'}
+                    placeholder="Paste the course curriculum or list competencies here..."
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* PDF Upload */}
+            {inputType === 'pdf' && (
+              <motion.div key="pdf" {...inputAnimation} className="h-full">
+                {!pdfFile ? (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "border-2 border-dashed rounded-2xl h-full min-h-[220px] flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300 relative overflow-hidden",
+                      isDragging
+                        ? "border-emerald-500 bg-emerald-50/80 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)]"
+                        : "border-neutral-300 bg-neutral-50 hover:bg-neutral-100 hover:border-emerald-300"
+                    )}
+                  >
+                    {isDragging && (
+                      <div className="absolute inset-0 bg-emerald-500/5 backdrop-blur-sm pointer-events-none" />
+                    )}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="application/pdf"
+                      className="hidden"
+                    />
+                    <motion.div animate={{ scale: isDragging ? 1.1 : 1, y: isDragging ? -5 : 0 }}>
+                      <UploadCloud size={36} className={cn("mx-auto mb-3", isDragging ? "text-emerald-500" : "text-neutral-400")} />
+                    </motion.div>
+                    <p className="text-sm font-bold text-neutral-700 relative z-10">Drag & drop a PDF curriculum here</p>
+                    <p className="text-xs text-neutral-500 mt-1 relative z-10">or click to browse files</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-white border border-emerald-200 rounded-2xl shadow-sm min-h-[220px]">
+                    <div className="flex items-center gap-4 m-auto">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                        <FileText size={24} />
+                      </div>
+                      <div className="max-w-[200px]">
+                        <p className="text-sm font-bold text-neutral-900 truncate" title={pdfFile.file.name}>{pdfFile.file.name}</p>
+                        <p className="text-xs text-emerald-600 font-medium mt-0.5">{(pdfFile.file.size / 1024 / 1024).toFixed(2)} MB • Ready</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPdfFile(null)}
+                        className="p-2 ml-4 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* URL Input */}
+            {inputType === 'url' && (
+              <motion.div key="url" {...inputAnimation} className="space-y-1.5 h-full flex flex-col justify-center min-h-[220px]">
+                <label className="text-xs font-bold text-neutral-700 ml-1">Course Website URL</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-emerald-500">
+                    <LinkIcon size={18} className="text-neutral-400 group-focus-within:text-emerald-500 transition-colors" />
+                  </div>
+                  <input
+                    type="url"
+                    value={urlData}
+                    onChange={e => setUrlData(e.target.value)}
+                    placeholder="https://example-university.edu/course-syllabus"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-neutral-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-800"
+                    required={inputType === 'url'}
+                  />
+                </div>
+                <div className="flex gap-3 items-start mt-3 bg-blue-50/50 border border-blue-100 p-3 rounded-lg text-blue-800">
+                  <Info size={16} className="shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">
+                    Vecto will use Gemini's URL Context tool to read the curriculum directly from the website. Ensure the URL is public.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
-          <h3 className="text-sm font-semibold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
-            <Activity size={14} className="text-emerald-500" />
+      <div className="space-y-4 pt-4 border-t border-neutral-100">
+        <div className="flex items-center justify-between pb-1">
+          <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-2">
+            <Activity size={14} className="text-emerald-600" />
             Live Market Signals
           </h3>
-          <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-neutral-400">
-            <Globe size={12} />
-            <span>Ingesting: JobStreet, DOSM, LinkedIn</span>
+          <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-neutral-500 bg-neutral-100 px-2 py-1 rounded-md border border-neutral-200">
+            <Globe size={12} className="text-blue-500" />
+            <span>JobStreet • DOSM • LinkedIn</span>
           </div>
         </div>
-        
+
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-neutral-700">Trending Skills (Extracted via NLP)</label>
-          <textarea 
+          <label className="text-xs font-bold text-neutral-700 ml-1">Trending Skills (Extracted via NLP)</label>
+          <textarea
             value={trendingSkills}
             onChange={e => setTrendingSkills(e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all min-h-[80px]"
+            className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all min-h-[80px] font-medium text-neutral-800 custom-scrollbar"
             required
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700">Salary Growth Data</label>
-            <input 
-              type="text" 
+            <label className="text-xs font-bold text-neutral-700 ml-1">Salary Growth Data</label>
+            <input
+              type="text"
               value={salaryGrowth}
               onChange={e => setSalaryGrowth(e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-800"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700">Green Standards</label>
-            <input 
-              type="text" 
+            <label className="text-xs font-bold text-neutral-700 ml-1">Green Standards</label>
+            <input
+              type="text"
               value={greenStandards}
               onChange={e => setGreenStandards(e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full px-3 py-2 bg-white border border-neutral-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-800"
             />
           </div>
         </div>
@@ -358,17 +399,28 @@ export default function CurriculumForm({ onAnalyze, loading }: CurriculumFormPro
       <button
         type="submit"
         disabled={loading || (inputType === 'pdf' && !pdfFile)}
-        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-xl transition-colors disabled:opacity-70 disabled:cursor-not-allowed mt-4"
+        className={cn(
+          "relative w-full flex items-center justify-center gap-2 font-bold py-3.5 px-4 rounded-xl transition-all duration-300 overflow-hidden shadow-lg",
+          loading || (inputType === 'pdf' && !pdfFile)
+            ? "bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none"
+            : "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white hover:shadow-emerald-500/25 hover:-translate-y-0.5"
+        )}
       >
         {loading ? (
           <>
+            <motion.div
+              className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+            />
             <Sparkles size={18} className="animate-pulse" />
-            Generating Patch via Gemini 2.0...
+            <span className="relative z-10">Generating Patch via Gemini 2.0...</span>
           </>
         ) : (
           <>
-            <Play size={18} />
-            Run Gap Analysis & Generate Patch
+            <div className="absolute inset-0 w-full h-full bg-white opacity-0 hover:opacity-10 transition-opacity"></div>
+            <Play size={18} className="relative z-10" />
+            <span className="relative z-10">Run Gap Analysis & Generate Patch</span>
           </>
         )}
       </button>
